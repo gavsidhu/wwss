@@ -1,0 +1,53 @@
+version: 2
+
+project_name: wwss
+
+builds:
+  - id: wwss
+    main: .
+    binary: wwss
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -mod=readonly
+      - -trimpath
+    # The application has no version variables to inject.
+    ldflags:
+      - -s -w
+
+archives:
+  - id: wwss
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - THIRD_PARTY_NOTICES
+      - README.md
+      - docs/KNOWN_ISSUES.md
+      - docs/RELEASING.md
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+  extra_files:
+    - glob: install.sh
+    - glob: install.ps1
+
+changelog:
+  sort: asc
+
+release:
+  draft: true
+  prerelease: auto

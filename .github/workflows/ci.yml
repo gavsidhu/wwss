@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      CGO_ENABLED: "0"
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: .go-version
+          cache: true
+      - name: Run existing tests
+        run: go test -mod=readonly -count=1 ./...
+      - name: Run vet
+        run: go vet -mod=readonly ./...
+      - name: Check CLI configuration round trip
+        run: python .github/scripts/smoke_cli.py
+      - name: Check installer and update behavior
+        run: python .github/scripts/test_installers.py
+
+  package:
+    name: Package all six targets
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: .go-version
+          cache: true
+      - name: Validate release configuration
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          distribution: goreleaser
+          version: v2.20.3
+          args: check
+      - name: Build local release archives
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          distribution: goreleaser
+          version: v2.20.3
+          args: release --snapshot --clean
+      - name: Stage installer assets
+        run: cp install.sh install.ps1 dist/
+      - name: Verify archive contents and checksums
+        run: python .github/scripts/check_archives.py dist
+      - name: Check the packaged native CLI
+        run: python .github/scripts/smoke_cli.py --dist dist
+      - name: Upload snapshot archives
+        uses: actions/upload-artifact@v7
+        with:
+          name: wwss-snapshot-${{ github.sha }}
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/checksums.txt
+            dist/install.sh
+            dist/install.ps1
+          if-no-files-found: error
+          retention-days: 14
+

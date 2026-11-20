@@ -1,0 +1,59 @@
+name: Draft release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    name: Create draft release
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: .go-version
+          cache: true
+      - name: Build versioned archives without publishing
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          distribution: goreleaser
+          version: v2.20.3
+          args: release --clean --skip=publish
+      - name: Stage installer assets
+        run: cp install.sh install.ps1 dist/
+      - name: Verify versioned archives
+        run: python .github/scripts/check_archives.py dist
+      - name: Check the packaged native CLI
+        run: python .github/scripts/smoke_cli.py --dist dist
+      - name: Include known issues in release notes
+        run: cat .github/RELEASE_HEADER.md dist/CHANGELOG.md > dist/RELEASE_NOTES.md
+      - name: Upload verified archives to a draft release
+        run: |
+          release_flags=(--verify-tag --draft --title "$GITHUB_REF_NAME" --notes-file dist/RELEASE_NOTES.md)
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            release_flags+=(--prerelease)
+          fi
+          gh release create "$GITHUB_REF_NAME" \
+            dist/*.tar.gz dist/*.zip dist/checksums.txt dist/install.sh dist/install.ps1 \
+            "${release_flags[@]}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

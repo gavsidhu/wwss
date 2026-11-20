@@ -1,0 +1,7 @@
+/dist/
+/wwss
+/wwss.exe
+/coverage.out
+/.wwss.json
+/.wwss.json.*
+.DS_Store
