@@ -138,13 +138,57 @@ def main():
                     import winreg
                     updated, _ = winreg.QueryValueEx(registry, "Path")
                     assert sum(part.rstrip("\\").lower() == str(install_dir).lower() for part in updated.split(";")) == 1
-                    cmd = (
-                        'powershell.exe -NoProfile -Command "& ([scriptblock]::Create((New-Object Net.WebClient).DownloadString(\''
-                        + base_url + '/latest/download/install.ps1\'))) -ReleaseBaseUrl \'' + base_url + '\'"'
-                        + ' && set "PATH=%LOCALAPPDATA%\\Programs\\wwss;%PATH%" && wwss --help'
-                    )
-                    result = subprocess.run(["cmd.exe", "/d", "/c", cmd], env=env, text=True, capture_output=True, timeout=60)
-                    assert result.returncode == 0, result.stdout + result.stderr
+                    # Start fresh: a previous PowerShell install must not mask a
+                    # bootstrap that prints its command instead of running it.
+                    cmd_home = root / "cmd test home"
+                    cmd_home.mkdir()
+                    cmd_config = cmd_home / ".wwss.json"
+                    cmd_config.write_bytes(original_config)
+                    resolved = root / "cmd resolved executable.txt"
+                    cmd_env = dict(env, HOME=str(cmd_home), USERPROFILE=str(cmd_home),
+                                   LOCALAPPDATA=str(cmd_home / "AppData/Local"), WWSS_TEST_RESOLVED=str(resolved))
+                    cmd_install_dir = Path(cmd_env["LOCALAPPDATA"]) / "Programs/wwss"
+                    cmd_executable = cmd_install_dir / "wwss.exe"
+                    cmd_script = root / "install from cmd.cmd"
+
+                    def install_from_cmd(version=None, succeeds=True):
+                        command = (
+                            'powershell.exe -NoProfile -Command "& ([scriptblock]::Create((New-Object Net.WebClient).DownloadString(\''
+                            + base_url + '/latest/download/install.ps1\'))) -ReleaseBaseUrl \'' + base_url + "'"
+                            + (f" -Version '{version}'" if version else "") + '"'
+                            + ' && set "PATH=%LOCALAPPDATA%\\Programs\\wwss;%PATH%" && wwss --help'
+                        )
+                        # Keep the pasted command out of subprocess's C-runtime
+                        # quoting. CMD reads its quotes literally from this file.
+                        cmd_script.write_bytes((
+                            "@echo off\r\n" + command + "\r\n"
+                            "if errorlevel 1 exit /b %errorlevel%\r\n"
+                            'where.exe wwss > "%WWSS_TEST_RESOLVED%"\r\n'
+                            "exit /b %errorlevel%\r\n"
+                        ).encode("ascii"))
+                        resolved.unlink(missing_ok=True)
+                        cmd_exe = cmd_env.get("COMSPEC", "cmd.exe")
+                        # /s strips the outer quotes, leaving the script's path
+                        # quoted even when its temporary directory has spaces.
+                        command_line = f'"{cmd_exe}" /d /s /c ""{cmd_script}""'
+                        result = subprocess.run(command_line, executable=cmd_exe, shell=False,
+                                                env=cmd_env, text=True, capture_output=True, timeout=60)
+                        if (result.returncode == 0) != succeeds:
+                            raise AssertionError(f"CMD install {version}: {result.returncode}\n{result.stdout}\n{result.stderr}")
+                        assert cmd_config.read_bytes() == original_config
+                        if succeeds:
+                            assert cmd_executable.is_file(), "CMD bootstrap did not install wwss"
+                            assert Path(resolved.read_text().splitlines()[0]).resolve() == cmd_executable.resolve(), "CMD found the wrong wwss on PATH"
+                            expected_version = "v2.0.0" if version is None else "v" + version.removeprefix("v")
+                            assert (cmd_install_dir / "version.txt").read_text().strip() == expected_version
+
+                    install_from_cmd("3.0.0", succeeds=False)
+                    assert not cmd_executable.exists(), "Failed bootstrap installed an executable"
+                    install_from_cmd("v1.0.0")
+                    install_from_cmd()  # The published one-line command updates in the same CMD process.
+                    install_from_cmd("2.0.0")
+                    updated, _ = winreg.QueryValueEx(registry, "Path")
+                    assert sum(part.rstrip("\\").lower() == str(cmd_install_dir).lower() for part in updated.split(";")) == 1
                 else:
                     for profile in [home / ".bashrc", home / ".profile"]:
                         assert profile.read_text().count("# >>> wwss PATH >>>") == 1
