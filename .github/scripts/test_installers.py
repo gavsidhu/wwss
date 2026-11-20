@@ -90,6 +90,11 @@ def main():
                 config.write_text(json.dumps({"devices": {"keep-me": {"mac_address": "02:00:00:00:00:01"}}}))
                 original_config = config.read_bytes()
                 env = dict(os.environ, HOME=str(home), USERPROFILE=str(home), LOCALAPPDATA=str(home / "AppData/Local"), SHELL="/bin/bash", WWSS_RELEASE_BASE_URL=base_url)
+                if windows:
+                    # CI's PowerShell 7 module paths are incompatible with the
+                    # Windows PowerShell 5.1 children launched through Python/CMD.
+                    # Let powershell.exe construct its native module search path.
+                    env = {key: value for key, value in env.items() if key.upper() != "PSMODULEPATH"}
                 install_dir = Path(env["LOCALAPPDATA"]) / "Programs/wwss" if windows else home / ".local/bin"
                 data_dir = install_dir if windows else home / ".local/share/wwss"
                 executable = install_dir / ("wwss.exe" if windows else "wwss")
