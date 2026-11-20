@@ -82,7 +82,9 @@ try {
     Copy-Item -Path (Join-Path $payload 'docs\*.md') -Destination (Join-Path $installDir 'docs') -Force
     $destination = Join-Path $installDir 'wwss.exe'
     if (Test-Path -LiteralPath $destination) {
-        [IO.File]::Replace($stagedBinary, $destination, $null)
+        # $null binds to an empty string here; File.Replace requires a true null
+        # string when no backup path is wanted, including in Windows PowerShell 5.1.
+        [IO.File]::Replace($stagedBinary, $destination, [NullString]::Value)
     } else {
         [IO.File]::Move($stagedBinary, $destination)
     }
