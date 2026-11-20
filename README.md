@@ -41,7 +41,7 @@ wwss_setup=$(mktemp) && curl -fsSL https://github.com/gavsidhu/wwss/releases/lat
 
 This installs `~/.local/bin/wwss`, adds that directory to the appropriate shell
 startup files for future terminals, and makes it available in the current
-terminal. License texts, documentation, and `version.txt` are stored in
+terminal. The license, documentation, and `version.txt` are stored in
 `~/.local/share/wwss`. Standard `curl`, `tar`, and a SHA-256 utility are required;
 macOS and typical Ubuntu Server installations provide the other shell tools.
 
@@ -153,5 +153,4 @@ deferred application changes.
 
 ## License
 
-[MIT](LICENSE). Bundled dependency and Go runtime license texts are included in
-[THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES).
+[MIT](LICENSE).

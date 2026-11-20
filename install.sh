@@ -114,7 +114,7 @@ main() {
 
     mkdir "$scratch/payload"
     tar -xzf "$scratch/$asset" -C "$scratch/payload" \
-        wwss LICENSE THIRD_PARTY_NOTICES README.md docs/KNOWN_ISSUES.md docs/RELEASING.md
+        wwss LICENSE README.md docs/KNOWN_ISSUES.md docs/RELEASING.md
     chmod 0755 "$scratch/payload/wwss"
     "$scratch/payload/wwss" --help >/dev/null || fail 'The downloaded binary cannot run on this operating system'
 
@@ -124,7 +124,7 @@ main() {
     staged_binary=$(mktemp "$bin_dir/.wwss-install.XXXXXX")
     cp "$scratch/payload/wwss" "$staged_binary"
     chmod 0755 "$staged_binary"
-    for file in LICENSE THIRD_PARTY_NOTICES README.md; do
+    for file in LICENSE README.md; do
         cp "$scratch/payload/$file" "$data_dir/$file"
     done
     cp "$scratch/payload/docs/KNOWN_ISSUES.md" "$scratch/payload/docs/RELEASING.md" "$data_dir/docs/"

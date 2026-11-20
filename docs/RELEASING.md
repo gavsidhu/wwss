@@ -61,8 +61,6 @@ after checking persistence. Run it in CI or a disposable Windows account.
 - [ ] Test restoring the backed-up config and previous binary.
 - [ ] Review the deferred issues in `KNOWN_ISSUES.md` and retain them in the
       release notes if shipping the current behavior.
-- [ ] Review dependency license texts in `THIRD_PARTY_NOTICES`. Refresh the
-      applicable texts when dependencies or the Go toolchain change.
 
 Build success and hosted-runner tests do not verify Wake-on-LAN delivery to real
 hardware. Record the OS versions, architectures, and hardware results in the
@@ -98,7 +96,7 @@ repository visibility.
 ## Release assets
 
 Each archive contains `wwss` or `wwss.exe`, `README.md`, `LICENSE`,
-`THIRD_PARTY_NOTICES`, and the known-issues and release documents. A separate
+and the known-issues and release documents. A separate
 `checksums.txt` covers all six archives and the separately uploaded `install.sh`
 and `install.ps1`. The installers use the latest release's checksum manifest,
 then pin the archive download to that manifest's version. Native signatures and macOS

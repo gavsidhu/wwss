@@ -9,7 +9,7 @@ import zipfile
 
 
 REQUIRED_FILES = {
-    "LICENSE", "THIRD_PARTY_NOTICES", "README.md",
+    "LICENSE", "README.md",
     "docs/KNOWN_ISSUES.md", "docs/RELEASING.md",
 }
 INSTALLERS = {"install.sh", "install.ps1"}

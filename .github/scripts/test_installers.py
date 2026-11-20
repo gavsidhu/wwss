@@ -17,7 +17,7 @@ import zipfile
 
 
 REPOSITORY = Path(__file__).resolve().parents[2]
-DOCS = ["LICENSE", "THIRD_PARTY_NOTICES", "README.md", "docs/KNOWN_ISSUES.md", "docs/RELEASING.md"]
+DOCS = ["LICENSE", "README.md", "docs/KNOWN_ISSUES.md", "docs/RELEASING.md"]
 
 
 class QuietHandler(http.server.SimpleHTTPRequestHandler):

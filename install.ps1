@@ -63,7 +63,7 @@ try {
     }
     $payload = Join-Path $scratch 'payload'
     Expand-Archive -LiteralPath $archivePath -DestinationPath $payload
-    foreach ($file in @('wwss.exe', 'LICENSE', 'THIRD_PARTY_NOTICES', 'README.md', 'docs\KNOWN_ISSUES.md', 'docs\RELEASING.md')) {
+    foreach ($file in @('wwss.exe', 'LICENSE', 'README.md', 'docs\KNOWN_ISSUES.md', 'docs\RELEASING.md')) {
         if (-not (Test-Path -LiteralPath (Join-Path $payload $file) -PathType Leaf)) {
             throw "Archive is missing $file"
         }
@@ -76,7 +76,7 @@ try {
     New-Item -ItemType Directory -Force -Path (Join-Path $installDir 'docs') | Out-Null
     $stagedBinary = Join-Path $installDir ('.wwss-' + [Guid]::NewGuid().ToString('N') + '.exe')
     Copy-Item -LiteralPath (Join-Path $payload 'wwss.exe') -Destination $stagedBinary
-    foreach ($file in @('LICENSE', 'THIRD_PARTY_NOTICES', 'README.md')) {
+    foreach ($file in @('LICENSE', 'README.md')) {
         Copy-Item -LiteralPath (Join-Path $payload $file) -Destination (Join-Path $installDir $file) -Force
     }
     Copy-Item -Path (Join-Path $payload 'docs\*.md') -Destination (Join-Path $installDir 'docs') -Force
